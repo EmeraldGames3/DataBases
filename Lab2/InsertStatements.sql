@@ -129,3 +129,45 @@ VALUES
     (19, 'PowerBook 3000', 980, 2, 2, 4),
     (20, 'FlexiBook Pro', 1100, 3, 3, 5);
 
+
+-- Insert data into the Order table for the first two orders
+INSERT INTO [Order] (order_ID, order_date, payment_method, customer_ID, transportation_ID, shipped)
+VALUES
+    (1, '2023-10-20', 'Credit Card', 1, 1, 0),
+    (2, '2023-10-21', 'PayPal', 2, 2, 0);
+
+-- Insert data into the ComputerOrder table to associate each computer with an order
+INSERT INTO ComputerOrder (computer_ID, order_ID)
+VALUES
+    (1, 1), -- Computer 1 is part of Order 1
+    (2, 2), -- Computer 2 is part of Order 2
+    (3, 2); -- Computer 3 is also part of Order 2
+
+-- Add VAT tax (20%) for all computers
+INSERT INTO ComputerTax (computer_tax_ID, computer_ID, tax_ID)
+SELECT c.computer_ID, c.computer_ID, t.tax_ID
+FROM Computer c
+JOIN Tax t ON t.tax_name = 'VAT Tax';
+
+-- Add Green Tax (8.5%) for the 5 most expensive computers
+INSERT INTO ComputerTax (computer_tax_ID, computer_ID, tax_ID)
+VALUES
+    (21, 1, 1),
+    (22, 3, 1),
+    (23, 5, 1),
+    (24, 8, 1),
+    (25, 10, 1);
+
+-- Insert data into the ComputerDiscounts table
+INSERT INTO ComputerDiscount (computer_discount_ID, computer_ID, discount_ID)
+VALUES
+    (1, 1, 1),
+    (2, 2, 1),
+    (3, 3, 1),
+    (4, 4, 1),
+    (5, 5, 1);
+
+-- Attempt to insert a ComputerOrder record that violates the foreign key constraint
+INSERT INTO ComputerOrder (computer_ID, order_ID)
+VALUES
+    (4, 5); -- Order 5 don't exist
