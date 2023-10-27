@@ -1,38 +1,5 @@
 USE COMPUTER_STORE
 
--- See all computers and theire associated taxes
-SELECT
-    c.computer_ID,
-    c.model_name,
-    c.price AS initial_price,
-    STRING_AGG(CONCAT(t.tax_name, ' (', t.tax_percentage, '%)'), ', ') AS all_taxes
-FROM Computer c
-LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
-LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
-GROUP BY c.computer_ID, c.model_name, c.price;
-
--- See the the final taxes applied to computers
-SELECT
-    c.computer_ID,
-    c.model_name,
-    c.price AS initial_price,
-    SUM(t.tax_percentage) AS total_tax
-FROM Computer c
-LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
-LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
-GROUP BY c.computer_ID, c.model_name, c.price;
-
--- See the final discounts applied to computers
-SELECT
-    c.computer_ID,
-    c.model_name,
-    c.price AS initial_price,
-    SUM(d.discount_percentage) AS total_discount
-FROM Computer c
-LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
-LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
-GROUP BY c.computer_ID, c.model_name, c.price;
-
 -- Querry 1: Calculate the final price of each computer
 WITH TotalDiscounts AS ( -- Calculate total discounts
     SELECT
@@ -71,7 +38,7 @@ JOIN (
 ON m.manufacturer_ID = avg_prices.manufacturer_ID
 ORDER BY avg_price DESC;
 
--- Query 3: Calculate the total price for each computer after applying associated discounts and taxes
+-- Query 3: Calculate the total price for each order
 WITH TotalPricePerComputer AS (
     SELECT
         co.order_ID,
