@@ -3,19 +3,19 @@ USE COMPUTER_STORE
 /*
 	What do I have:
 		- 2 WHERE //TODO: make it 5
-		- 3 Joining more than two tables
+		- 3 JOIN more than two tables
 		- 1 Outer Joing
 		- TODO: 1 with ANY
 		- TODO: 1 with ALL
 		- 3 GROUP BY
 		- 1 HAVING //TODO: 2 HAVING
-		- 1 Aggregate functions
+		- 3 Aggregate functions
 		- TODO: 1 UNION
 		- TODO: 1 OR
 		- TODO: 1 INTERSECT
-		- TODO: 1 IN
+		- 1 IN
 		- TODO: 1 EXCEPT
-		- TODO: 1 NOT IN
+		- 1 NOT IN
 		- TODO: 1 DISTINCT
 		- 1 Top
 		- 1 Order by
@@ -189,3 +189,24 @@ SELECT
 FROM Customer c
 JOIN TotalMoneySpent tms ON c.customer_id = tms.customer_id
 WHERE c.customer_id IN (SELECT customer_id FROM BigPurchases);
+
+
+-- Querry 6: Find customers who purchased computers with non-popular OS
+WITH OperatingSystemPopularity AS (
+    SELECT os.os_name, COUNT(co.order_ID) AS os_order_count
+    FROM ComputerOrder co
+    JOIN Computer c ON co.computer_ID = c.computer_ID
+    JOIN OperatingSystem os ON c.os_ID = os.os_ID
+    GROUP BY os.os_name
+)
+SELECT DISTINCT cu.customer_id, cu.first_name, cu.family_name
+FROM Customer cu
+JOIN [Order] o ON cu.customer_id = o.customer_id
+JOIN ComputerOrder co ON o.order_ID = co.order_ID
+JOIN Computer com ON co.computer_ID = com.computer_ID
+JOIN OperatingSystem os ON com.os_ID = os.os_ID
+WHERE os.os_name NOT IN (
+    SELECT TOP 2 os_name
+    FROM OperatingSystemPopularity
+    ORDER BY os_order_count DESC
+);
