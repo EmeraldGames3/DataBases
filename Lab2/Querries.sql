@@ -1,36 +1,27 @@
-USE COMPUTER_STORE;
+USE COMPUTER_STORE
 
--- Querry 1: Calculate the final price of each computer
-WITH TotalDiscounts AS (
-    SELECT
-        c.computer_ID,
-        SUM(d.discount_percentage) AS total_discount
-    FROM Computer c
-    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
-    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
-    GROUP BY c.computer_ID
-),
-TotalTaxes AS (
-    SELECT
-        c.computer_ID,
-        SUM(t.tax_percentage) AS total_tax
-    FROM Computer c
-    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
-    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
-    GROUP BY c.computer_ID
-)
-SELECT c.computer_ID, c.model_name,
-       c.price AS initial_price,
-       (1 + ISNULL(tt.total_tax / 100, 0)) * (1 - ISNULL(td.total_discount / 100, 0)) * c.price AS total_price
-FROM Computer c
-LEFT JOIN TotalTaxes tt ON c.computer_ID = tt.computer_ID
-LEFT JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID
-ORDER BY total_price DESC;
+/*
+	What do I have:
+		- 2 WHERE //TODO: make it 5
+		- 3 Joining more than two tables
+		- 1 Outer Joing
+		- TODO: 1 with ANY
+		- TODO: 1 with ALL
+		- 3 GROUP BY
+		- 1 HAVING //TODO: 2 HAVING
+		- 1 Aggregate functions
+		- TODO: 1 UNION
+		- TODO: 1 OR
+		- TODO: 1 INTERSECT
+		- TODO: 1 IN
+		- TODO: 1 EXCEPT
+		- TODO: 1 NOT IN
+		- TODO: 1 DISTINCT
+		- 1 Top
+		- 1 Order by
+*/
 
-
-
-
--- Query 2: Find the manufacturer with the highest average price before taxes
+-- Query 1: Find the manufacturer with the highest average price before taxes
 SELECT TOP 1 m.manufacturer_name, avg_price
 FROM Manufacturer m
 JOIN (
@@ -43,41 +34,7 @@ ORDER BY avg_price DESC;
 
 
 
-
-
--- Query 3: Calculate the total price for each order and order them from most expensive to least expensive
-WITH TotalPricePerComputer AS (
-    SELECT
-        co.order_ID,
-        c.computer_ID,
-        c.price,
-        co.computer_amount,
-        SUM((1 + t.tax_percentage / 100) * ISNULL(1 - d.discount_percentage / 100, 1) * c.price) AS total_price_per_unit
-    FROM ComputerOrder co
-    JOIN Computer c ON co.computer_ID = c.computer_ID
-    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
-    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
-    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
-    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
-    GROUP BY co.order_ID, c.computer_ID, c.price, co.computer_amount
-),
-TotalPricePerOrder AS (
-    SELECT
-        order_ID,
-        SUM(total_price_per_unit * computer_amount) AS total_order_price
-    FROM TotalPricePerComputer
-    GROUP BY order_ID
-)
-SELECT
-    o.order_ID,
-    tpo.total_order_price
-FROM [Order] o
-LEFT JOIN TotalPricePerOrder tpo ON o.order_ID = tpo.order_ID
-ORDER BY tpo.total_order_price DESC;
-
-
-
--- Querry 4: Calculate the count and percentage of each payment method used in orders
+-- Querry 2: Calculate the count and percentage of each payment method used in orders
 WITH PaymentMethodCounts AS (
     SELECT
         payment_method,
@@ -94,7 +51,7 @@ ORDER BY order_count DESC;
 
 
 
--- Querry 5: Find minimum, maximum and avarage price of computers
+-- Querry 3: Find minimum, maximum and avarage price of computers
 WITH TotalDiscounts AS (
     SELECT
         c.computer_ID,
@@ -124,7 +81,7 @@ LEFT JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID;
 
 
 
--- Query 6: Calculate the total sales revenue for a given time period
+-- Query 4: Calculate the total sales revenue for a given time period
 DECLARE @StartDate DATE = '2023-01-01'; -- Replace with your desired start date
 DECLARE @EndDate DATE = '2023-12-31'; -- Replace with your desired end date
 WITH TotalTaxes AS (
@@ -159,3 +116,76 @@ TotalSales AS (
 )
 SELECT SUM(total_price) AS total_sales_revenue
 FROM TotalSales;
+
+
+
+
+-- Query 5: Find repeat customers that made big purchases with order details
+WITH TotalPricePerComputer AS (
+    SELECT
+        co.order_ID,
+        c.computer_ID,
+        c.price,
+        co.computer_amount,
+        SUM((1 + t.tax_percentage / 100) * ISNULL(1 - d.discount_percentage / 100, 1) * c.price) AS total_price_per_unit
+    FROM ComputerOrder co
+    JOIN Computer c ON co.computer_ID = c.computer_ID
+    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
+    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
+    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
+    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
+    GROUP BY co.order_ID, c.computer_ID, c.price, co.computer_amount
+),
+TotalPricePerOrder AS (
+    SELECT
+        order_ID,
+        SUM(total_price_per_unit * computer_amount) AS total_order_price
+    FROM TotalPricePerComputer
+    GROUP BY order_ID
+),
+RepeatCustomers AS (
+    SELECT c.customer_id
+    FROM Customer c
+    JOIN [Order] o ON c.customer_id = o.customer_id
+    GROUP BY c.customer_id
+    HAVING COUNT(o.order_id) >= 2
+),
+AverageOrderPrice AS (
+    SELECT
+        AVG(tpo.total_order_price) AS average_order_price
+    FROM TotalPricePerOrder tpo
+),
+BigPurchases AS (
+    SELECT c.customer_id
+    FROM Customer c
+    JOIN [Order] o ON c.customer_id = o.customer_id
+    JOIN TotalPricePerOrder tpo ON o.order_ID = tpo.order_ID
+    WHERE tpo.total_order_price >= (SELECT average_order_price FROM AverageOrderPrice)
+    GROUP BY c.customer_id
+),
+TotalMoneySpent AS (
+    SELECT
+        c.customer_id,
+        SUM(tpo.total_order_price) AS total_money_spent
+    FROM Customer c
+    JOIN [Order] o ON c.customer_id = o.customer_id
+    JOIN TotalPricePerOrder tpo ON o.order_ID = tpo.order_ID
+    GROUP BY c.customer_id
+)
+SELECT
+    c.customer_id,
+    c.first_name,
+    c.family_name,
+    tms.total_money_spent
+FROM Customer c
+JOIN TotalMoneySpent tms ON c.customer_id = tms.customer_id
+WHERE c.customer_id IN (SELECT customer_id FROM RepeatCustomers)
+INTERSECT
+SELECT
+    c.customer_id,
+    c.first_name,
+    c.family_name,
+    tms.total_money_spent
+FROM Customer c
+JOIN TotalMoneySpent tms ON c.customer_id = tms.customer_id
+WHERE c.customer_id IN (SELECT customer_id FROM BigPurchases);
