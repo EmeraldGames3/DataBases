@@ -5,14 +5,14 @@ USE COMPUTER_STORE
 		- 5 WHERE
 		- 6 JOIN more than two tables // TODO: make it 7
 		- 1 Outer Joing
-		- TODO: 1 with ANY
+		- 1 with ANY
 		- 1 with ALL
 		- 3 GROUP BY
 		- 2 HAVING
 		- 3 Aggregate functions
 		- TODO: 1 UNION
 		- TODO: 1 OR
-		- TODO: 1 INTERSECT
+		- 1 INTERSECT
 		- 1 IN
 		- TODO: 1 EXCEPT
 		- 1 NOT IN
@@ -48,6 +48,7 @@ SELECT
     (order_count * 100.0) / SUM(order_count) OVER () AS percentage
 FROM PaymentMethodCounts
 ORDER BY order_count DESC;
+
 
 
 
@@ -120,7 +121,7 @@ FROM TotalSales;
 
 
 
--- Query 5: Find repeat customers that made big purchases with order details
+-- Query 5: Find repeat customers that made big purchases
 WITH TotalPricePerComputer AS (
     SELECT
         co.order_ID,
@@ -191,6 +192,8 @@ JOIN TotalMoneySpent tms ON c.customer_id = tms.customer_id
 WHERE c.customer_id IN (SELECT customer_id FROM BigPurchases);
 
 
+
+
 -- Querry 6: Find customers who purchased computers with non-popular OS
 WITH OperatingSystemPopularity AS (
     SELECT os.os_name, os_version, COUNT(co.order_ID) AS os_order_count
@@ -213,6 +216,8 @@ WHERE os.os_name NOT IN (
 );
 
 
+
+
 -- Querry 7 Show what computer categories young people purchase:
 WITH CustomerAge AS (
     SELECT cu.customer_id, YEAR(GETDATE()) - YEAR(cu.birth_date) AS age
@@ -224,13 +229,18 @@ JOIN [Order] o ON ca.customer_id = o.customer_id
 JOIN ComputerOrder co ON o.order_ID = co.order_ID
 JOIN Computer com ON co.computer_ID = com.computer_ID
 JOIN ComputerCategory cc ON com.computer_category_ID = cc.computer_category_ID
-WHERE ca.age < 25;
+WHERE ca.age < 25 OR ca.age < (
+    SELECT AVG(age) 
+    FROM CustomerAge
+);
 
 
--- Querry 8: Find customers who have purchased all three popular OS types
+
+
+-- Querry 8: Find customers who have purchased any of the most popular OS types
 SELECT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
-WHERE cu.customer_id = ALL (
+WHERE cu.customer_id = ANY (
     SELECT DISTINCT o.customer_id
     FROM [Order] o
     WHERE o.customer_id = cu.customer_id
@@ -239,6 +249,21 @@ WHERE cu.customer_id = ALL (
         FROM ComputerOrder co
         JOIN Computer com ON co.computer_ID = com.computer_ID
         JOIN OperatingSystem os ON com.os_ID = os.os_ID
-        WHERE os.os_name IN ('Windows', 'Linux', 'Mac OS')
+        WHERE os.os_name IN ('Windows', 'Mac OS')
     )
 );
+
+
+-- Querry 9: Find all adults that pay exclusively with Credit Cards
+SELECT c.customer_ID, c.first_name, c.family_name
+FROM Customer c
+WHERE c.customer_ID = ALL (
+    SELECT o.customer_ID
+    FROM [Order] o
+    WHERE o.customer_ID = c.customer_ID
+    AND o.payment_method = 'Credit Card'
+)
+INTERSECT
+SELECT c.customer_ID, c.first_name, c.family_name
+FROM Customer c
+WHERE YEAR(GETDATE()) - YEAR(c.birth_date) > 30;
