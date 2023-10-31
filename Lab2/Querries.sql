@@ -2,13 +2,13 @@ USE COMPUTER_STORE
 
 /*
 	What do I have:
-		- 2 WHERE //TODO: make it 5
-		- 3 JOIN more than two tables
+		- 5 WHERE
+		- 6 JOIN more than two tables // TODO: make it 7
 		- 1 Outer Joing
 		- TODO: 1 with ANY
-		- TODO: 1 with ALL
+		- 1 with ALL
 		- 3 GROUP BY
-		- 1 HAVING //TODO: 2 HAVING
+		- 2 HAVING
 		- 3 Aggregate functions
 		- TODO: 1 UNION
 		- TODO: 1 OR
@@ -16,7 +16,7 @@ USE COMPUTER_STORE
 		- 1 IN
 		- TODO: 1 EXCEPT
 		- 1 NOT IN
-		- TODO: 1 DISTINCT
+		- 1 DISTINCT
 		- 1 Top
 		- 1 Order by
 */
@@ -82,8 +82,8 @@ LEFT JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID;
 
 
 -- Query 4: Calculate the total sales revenue for a given time period
-DECLARE @StartDate DATE = '2023-01-01'; -- Replace with your desired start date
-DECLARE @EndDate DATE = '2023-12-31'; -- Replace with your desired end date
+DECLARE @StartDate DATE = '2023-01-01';
+DECLARE @EndDate DATE = '2023-12-31';
 WITH TotalTaxes AS (
     SELECT
         c.computer_ID,
@@ -193,11 +193,12 @@ WHERE c.customer_id IN (SELECT customer_id FROM BigPurchases);
 
 -- Querry 6: Find customers who purchased computers with non-popular OS
 WITH OperatingSystemPopularity AS (
-    SELECT os.os_name, COUNT(co.order_ID) AS os_order_count
+    SELECT os.os_name, os_version, COUNT(co.order_ID) AS os_order_count
     FROM ComputerOrder co
     JOIN Computer c ON co.computer_ID = c.computer_ID
     JOIN OperatingSystem os ON c.os_ID = os.os_ID
-    GROUP BY os.os_name
+    GROUP BY os.os_name, os.os_version
+	HAVING os.os_name IS NOT NULL OR os.os_version IS NOT NULL
 )
 SELECT DISTINCT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
@@ -209,4 +210,35 @@ WHERE os.os_name NOT IN (
     SELECT TOP 2 os_name
     FROM OperatingSystemPopularity
     ORDER BY os_order_count DESC
+);
+
+
+-- Querry 7 Show what computer categories young people purchase:
+WITH CustomerAge AS (
+    SELECT cu.customer_id, YEAR(GETDATE()) - YEAR(cu.birth_date) AS age
+    FROM Customer cu
+)
+SELECT DISTINCT cc.category_name
+FROM CustomerAge ca
+JOIN [Order] o ON ca.customer_id = o.customer_id
+JOIN ComputerOrder co ON o.order_ID = co.order_ID
+JOIN Computer com ON co.computer_ID = com.computer_ID
+JOIN ComputerCategory cc ON com.computer_category_ID = cc.computer_category_ID
+WHERE ca.age < 25;
+
+
+-- Querry 8: Find customers who have purchased all three popular OS types
+SELECT cu.customer_id, cu.first_name, cu.family_name
+FROM Customer cu
+WHERE cu.customer_id = ALL (
+    SELECT DISTINCT o.customer_id
+    FROM [Order] o
+    WHERE o.customer_id = cu.customer_id
+    AND o.order_ID IN (
+        SELECT co.order_ID
+        FROM ComputerOrder co
+        JOIN Computer com ON co.computer_ID = com.computer_ID
+        JOIN OperatingSystem os ON com.os_ID = os.os_ID
+        WHERE os.os_name IN ('Windows', 'Linux', 'Mac OS')
+    )
 );
