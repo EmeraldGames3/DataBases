@@ -188,7 +188,7 @@ WHERE ca.age < 25 OR ca.age < 0.75 * (
 
 
 
--- Querry 8
+-- Querry 8 -> Changed
 SELECT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
 WHERE cu.customer_id = ANY (
@@ -215,14 +215,14 @@ WHERE cu.customer_id = ANY (
 
 
 
--- Querry 9
+-- Querry 9 //TODO
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
-WHERE c.customer_ID = ALL (
+WHERE c.customer_ID != ALL (
     SELECT o.customer_ID
     FROM [Order] o
     WHERE o.customer_ID = c.customer_ID
-    AND o.payment_method = 'Credit Card'
+    AND o.payment_method = 'Cash'
 )
 INTERSECT
 SELECT c.customer_ID, c.first_name, c.family_name
