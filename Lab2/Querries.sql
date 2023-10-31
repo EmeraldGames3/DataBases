@@ -20,7 +20,7 @@ USE COMPUTER_STORE;
 		- 1 Order by
 */
 
--- Query 1: Find the manufacturer with the most expensive products after taxes and discounts
+-- Query 1
 WITH TotalDiscounts AS (
     SELECT
         c.computer_ID,
@@ -52,7 +52,7 @@ ORDER BY avg_price DESC;
 
 
 
--- Querry 2: Calculate the count and percentage of each payment method used in orders
+-- Querry 2
 WITH PaymentMethodCounts AS (
     SELECT
         payment_method,
@@ -72,7 +72,7 @@ ORDER BY order_count DESC;
 
 
 
--- Querry 3: Find minimum, maximum and avarage price of computers
+-- Querry 3
 WITH TotalDiscounts AS (
     SELECT
         c.computer_ID,
@@ -102,10 +102,10 @@ JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID;
 
 
 
--- Query 4: Compare the total sales revenue for the last two holiday seasons
-DECLARE @StartDate1 DATE = '2022-01-01';
+-- Query 4
+DECLARE @StartDate1 DATE = '2022-11-01';
 DECLARE @EndDate1 DATE = '2022-12-31';
-DECLARE @StartDate2 DATE = '2023-01-01';
+DECLARE @StartDate2 DATE = '2023-11-01';
 DECLARE @EndDate2 DATE = '2023-12-31';
 WITH TotalTaxes AS (
     SELECT
@@ -149,7 +149,7 @@ WHERE o.order_date >= @StartDate2 AND o.order_date <= @EndDate2;
 
 
 
--- Querry 5: Find repeat customers and how much they spent
+-- Querry 5
 WITH CustomerTotalSpending AS (
     SELECT
         c.customer_id,
@@ -177,7 +177,7 @@ FROM CustomerTotalSpending;
 
 
 
--- Querry 6: Find customers who purchased computers with non-popular OS
+-- Querry 6
 WITH OperatingSystemPopularity AS (
     SELECT os.os_name, os_version, COUNT(co.order_ID) AS os_order_count
     FROM ComputerOrder co
@@ -201,7 +201,7 @@ WHERE os.os_name NOT IN (
 
 
 
--- Querry 7 Show what computer categories young people purchase:
+-- Querry 7
 WITH CustomerAge AS (
     SELECT cu.customer_id, YEAR(GETDATE()) - YEAR(cu.birth_date) AS age
     FROM Customer cu
@@ -220,7 +220,7 @@ WHERE ca.age < 25 OR ca.age < (
 
 
 
--- Querry 8: Find customers who have purchased any of the most popular OS types
+-- Querry 8
 WITH MostPopularOS AS (
     SELECT TOP 1 os_name
     FROM (
@@ -250,7 +250,7 @@ WHERE cu.customer_id = ANY (
 
 
 
--- Querry 9: Find all adults that pay exclusively with Credit Cards
+-- Querry 9
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
 WHERE c.customer_ID = ALL (
@@ -266,7 +266,7 @@ WHERE YEAR(GETDATE()) - YEAR(c.birth_date) > 30;
 
 
 
--- Querry 10: Find new customers that bought less popular models
+-- Querry 10
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
 WHERE c.customer_ID IN (
