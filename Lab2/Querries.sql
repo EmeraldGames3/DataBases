@@ -3,34 +3,53 @@ USE COMPUTER_STORE
 /*
 	What do I have:
 		- 5 WHERE
-		- 6 JOIN more than two tables // TODO: make it 7
+		- 7 JOIN more than two tables
 		- 1 Outer Joing
 		- 1 with ANY
 		- 1 with ALL
 		- 3 GROUP BY
 		- 2 HAVING
 		- 3 Aggregate functions
-		- TODO: 1 UNION
+		- 1 UNION
 		- 1 OR
 		- 1 INTERSECT
 		- 1 IN
-		- TODO: 1 EXCEPT
+		- 1 EXCEPT
 		- 1 NOT IN
 		- 1 DISTINCT
 		- 1 Top
 		- 1 Order by
 */
 
--- Query 1: Find the manufacturer with the highest average price before taxes
-SELECT TOP 1 m.manufacturer_name, avg_price
-FROM Manufacturer m
-JOIN (
-    SELECT c.manufacturer_ID, AVG(c.price) AS avg_price
+-- Query 1: Find the manufacturer with the most expensive products after taxes and discounts
+WITH TotalDiscounts AS (
+    SELECT
+        c.computer_ID,
+        SUM(d.discount_percentage) AS total_discount
     FROM Computer c
-    GROUP BY c.manufacturer_ID
-) AS avg_prices
-ON m.manufacturer_ID = avg_prices.manufacturer_ID
+    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
+    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
+    GROUP BY c.computer_ID
+),
+TotalTaxes AS (
+    SELECT
+        c.computer_ID,
+        SUM(t.tax_percentage) AS total_tax
+    FROM Computer c
+    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
+    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
+    GROUP BY c.computer_ID
+)
+SELECT TOP 1
+    m.manufacturer_name,
+    AVG((1 + ISNULL(tt.total_tax / 100, 0)) * (1 - ISNULL(td.total_discount / 100, 0)) * c.price) AS avg_price
+FROM Manufacturer m
+JOIN Computer c ON m.manufacturer_ID = c.manufacturer_ID
+LEFT JOIN TotalTaxes tt ON c.computer_ID = tt.computer_ID
+LEFT JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID
+GROUP BY m.manufacturer_name
 ORDER BY avg_price DESC;
+
 
 
 
@@ -82,9 +101,11 @@ LEFT JOIN TotalDiscounts td ON c.computer_ID = td.computer_ID;
 
 
 
--- Query 4: Calculate the total sales revenue for a given time period
-DECLARE @StartDate DATE = '2023-01-01';
-DECLARE @EndDate DATE = '2023-12-31';
+-- Query 4: Compare the total sales revenue for the last two holiday seasons
+DECLARE @StartDate1 DATE = '2022-01-01';
+DECLARE @EndDate1 DATE = '2022-12-31';
+DECLARE @StartDate2 DATE = '2023-01-01';
+DECLARE @EndDate2 DATE = '2023-12-31';
 WITH TotalTaxes AS (
     SELECT
         c.computer_ID,
@@ -112,11 +133,17 @@ TotalSales AS (
     JOIN Computer c ON co.computer_ID = c.computer_ID
     LEFT JOIN TotalTaxes t ON c.computer_ID = t.computer_ID
     LEFT JOIN TotalDiscounts d ON c.computer_ID = d.computer_ID
-    WHERE o.order_date >= @StartDate AND o.order_date <= @EndDate
-    GROUP BY co.order_ID
+    WHERE (o.order_date >= @StartDate1 AND o.order_date <= @EndDate1)
+       OR (o.order_date >= @StartDate2 AND o.order_date <= @EndDate2)
+    GROUP BY co.order_ID, o.order_date
 )
-SELECT SUM(total_price) AS total_sales_revenue
-FROM TotalSales;
+SELECT '2022' AS year, SUM(total_price) AS total_sales_revenue
+FROM TotalSales, [Order] o
+WHERE o.order_date >= @StartDate1 AND o.order_date <= @EndDate1
+UNION
+SELECT '2023' AS year, SUM(total_price) AS total_sales_revenue
+FROM TotalSales, [Order] o
+WHERE o.order_date >= @StartDate2 AND o.order_date <= @EndDate2;
 
 
 
@@ -238,6 +265,17 @@ WHERE ca.age < 25 OR ca.age < (
 
 
 -- Querry 8: Find customers who have purchased any of the most popular OS types
+WITH MostPopularOS AS (
+    SELECT TOP 1 os_name
+    FROM (
+        SELECT os.os_name, COUNT(co.order_ID) AS os_order_count
+        FROM ComputerOrder co
+        JOIN Computer c ON co.computer_ID = c.computer_ID
+        JOIN OperatingSystem os ON c.os_ID = os.os_ID
+        GROUP BY os.os_name
+    ) AS PopularOS
+    ORDER BY os_order_count DESC
+)
 SELECT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
 WHERE cu.customer_id = ANY (
@@ -249,7 +287,7 @@ WHERE cu.customer_id = ANY (
         FROM ComputerOrder co
         JOIN Computer com ON co.computer_ID = com.computer_ID
         JOIN OperatingSystem os ON com.os_ID = os.os_ID
-        WHERE os.os_name IN ('Windows', 'Mac OS')
+        WHERE os.os_name IN ('Windows', 'Mac OS') OR os.os_name = (SELECT os_name FROM MostPopularOS)
     )
 );
 
