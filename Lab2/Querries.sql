@@ -11,7 +11,7 @@ USE COMPUTER_STORE
 		- 2 HAVING
 		- 3 Aggregate functions
 		- TODO: 1 UNION
-		- TODO: 1 OR
+		- 1 OR
 		- 1 INTERSECT
 		- 1 IN
 		- TODO: 1 EXCEPT
@@ -254,6 +254,8 @@ WHERE cu.customer_id = ANY (
 );
 
 
+
+
 -- Querry 9: Find all adults that pay exclusively with Credit Cards
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
@@ -267,3 +269,25 @@ INTERSECT
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
 WHERE YEAR(GETDATE()) - YEAR(c.birth_date) > 30;
+
+
+
+-- Querry 10: Find new customers that bought less popular models
+SELECT c.customer_ID, c.first_name, c.family_name
+FROM Customer c
+WHERE c.customer_ID IN (
+    SELECT DISTINCT o.customer_ID
+    FROM [Order] o
+    WHERE o.order_date >= DATEADD(MONTH, -1, GETDATE())
+)
+EXCEPT
+SELECT c.customer_ID, c.first_name, c.family_name
+FROM Customer c
+WHERE c.customer_ID IN (
+    SELECT DISTINCT o.customer_ID
+    FROM [Order] o
+    JOIN ComputerOrder co ON o.order_ID = co.order_ID
+    JOIN Computer com ON co.computer_ID = com.computer_ID
+    JOIN ComputerCategory cc ON com.computer_category_ID = cc.computer_category_ID
+    WHERE cc.category_name IN ('All-in-One PC', 'Convertible Laptop')
+)
