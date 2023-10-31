@@ -107,25 +107,35 @@ DECLARE @StartDate1 DATE = '2022-01-01';
 DECLARE @EndDate1 DATE = '2022-12-31';
 DECLARE @StartDate2 DATE = '2023-01-01';
 DECLARE @EndDate2 DATE = '2023-12-31';
-WITH TotalSales AS (
+WITH TotalTaxes AS (
+    SELECT
+        c.computer_ID,
+        SUM(t.tax_percentage) AS total_tax
+    FROM Computer c
+    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
+    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
+    GROUP BY c.computer_ID
+),
+TotalDiscounts AS (
+    SELECT
+        c.computer_ID,
+        SUM(d.discount_percentage) AS total_discount
+    FROM Computer c
+    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
+    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
+    GROUP BY c.computer_ID
+),
+TotalSales AS (
     SELECT
         co.order_ID,
-        SUM(
-            (1 + ISNULL(t.tax_percentage / 100, 0)) *
-            (1 - ISNULL(d.discount_percentage / 100, 0)) *
-            c.price
-        ) AS total_price
+        SUM((1 + ISNULL(t.total_tax / 100, 0)) * (1 - ISNULL(d.total_discount / 100, 0)) * c.price) AS total_price
     FROM ComputerOrder co
     JOIN [Order] o ON co.order_ID = o.order_ID
     JOIN Computer c ON co.computer_ID = c.computer_ID
-    LEFT JOIN ComputerTax ct ON c.computer_ID = ct.computer_ID
-    LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
-    LEFT JOIN ComputerDiscount cd ON c.computer_ID = cd.computer_ID
-    LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
-    WHERE 
-        (o.order_date >= @StartDate1 AND o.order_date <= @EndDate1)
-        OR 
-        (o.order_date >= @StartDate2 AND o.order_date <= @EndDate2)
+    LEFT JOIN TotalTaxes t ON c.computer_ID = t.computer_ID
+    LEFT JOIN TotalDiscounts d ON c.computer_ID = d.computer_ID
+    WHERE (o.order_date >= @StartDate1 AND o.order_date <= @EndDate1)
+       OR (o.order_date >= @StartDate2 AND o.order_date <= @EndDate2)
     GROUP BY co.order_ID, o.order_date
 )
 SELECT '2022' AS year, SUM(total_price) AS total_sales_revenue
