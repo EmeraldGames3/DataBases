@@ -1,25 +1,5 @@
 USE Lab3;
 
-DROP TABLE CurrentVersion;
-DROP TABLE [Procedures];
-
-CREATE TABLE CurrentVersion (
-	versionID INT PRIMARY KEY
-);
-
-CREATE TABLE [Procedures](
-	versionID INT IDENTITY(1, 1) NOT NULL PRIMARY KEY,
-	procedureName VARCHAR(30),
-	tableName VARCHAR(100),
-	columnsDefinition VARCHAR(MAX),
-	columnName VARCHAR(100),
-	columnType VARCHAR(100),
-	defaultConstraint VARCHAR(100),
-	oldColumnType VARCHAR(100),
-	referencedTable VARCHAR(100),
-    referencedColumn VARCHAR(100),
-)
-
 CREATE OR ALTER PROCEDURE CreateTable(
     @tableName VARCHAR(100),
     @columnsDefinition VARCHAR(MAX)
@@ -202,5 +182,3 @@ EXEC ChangeColumnType 'Customers', 'Age', 'VARCHAR(50)';
 EXEC RollBackChangeColumnType 'Customers', 'Age', 'INT';
 EXEC RollbackAddColumnToTable 'Customers', 'Age';
 EXEC RollbackCreateTable 'Customers';
-
-
