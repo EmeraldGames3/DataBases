@@ -1,6 +1,6 @@
 USE COMPUTER_STORE;
 
--- Query 1
+-- Query
 SELECT TOP 1 WITH TIES
     m.manufacturer_name,
     AVG(
@@ -32,7 +32,7 @@ ORDER BY avg_price DESC;
 
 
 
--- Querry 2
+-- Querry
 SELECT
     pm.payment_method,
     pm.order_count,
@@ -49,7 +49,7 @@ ORDER BY pm.order_count DESC;
 
 
 
--- Querry 3
+-- Querry
 SELECT 
     MIN((1 + ISNULL(tt.total_tax / 100, 0)) * (1 - ISNULL(td.total_discount / 100, 0)) * c.price) AS min_price,
     AVG((1 + ISNULL(tt.total_tax / 100, 0)) * (1 - ISNULL(td.total_discount / 100, 0)) * c.price) AS avg_price,
@@ -75,7 +75,7 @@ LEFT JOIN (
 
 
 
--- Query 4
+-- Query
 SELECT '2022' AS year, SUM(total_price) AS total_sales_revenue
 FROM (
     SELECT
@@ -127,7 +127,7 @@ FROM (
 
 
 
--- Querry 5
+-- Querry -- can be deleted if need be
 SELECT
 	c.customer_id,
     c.first_name,
@@ -147,7 +147,7 @@ HAVING COUNT(o.order_ID) > 1;
 
 
 
--- Querry 6 -> Changed
+-- Querry -> Changed
 SELECT DISTINCT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
 JOIN [Order] o ON cu.customer_id = o.customer_id
@@ -167,7 +167,7 @@ WHERE os.os_name NOT IN (
 
 
 
--- Querry 7
+-- Querry
 SELECT Distinct cc.category_name
 FROM (
     SELECT cu.customer_id, YEAR(GETDATE()) - YEAR(cu.birth_date) AS age
@@ -188,7 +188,7 @@ WHERE ca.age < 25 OR ca.age < 0.75 * (
 
 
 
--- Querry 8 -> Changed
+-- Querry -> Changed
 SELECT cu.customer_id, cu.first_name, cu.family_name
 FROM Customer cu
 WHERE cu.customer_id = ANY (
@@ -212,27 +212,61 @@ WHERE cu.customer_id = ANY (
     )
 );
 
+--Querry -> Changed
+SELECT co.order_ID,
+	SUM(
+		(1 + ISNULL(t.tax_percentage / 100, 0)) 
+		* (1 - ISNULL(d.discount_percentage / 100, 0)) 
+		* c.price * co.computer_amount
+	) AS Order_Price
+FROM ComputerOrder co
+JOIN Computer c ON co.computer_ID = c.computer_ID
+LEFT JOIN ComputerTax ct ON co.computer_ID = ct.computer_ID
+LEFT JOIN Tax t ON ct.tax_ID = t.tax_ID
+LEFT JOIN ComputerDiscount cd ON co.computer_ID = cd.computer_ID
+LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
+GROUP BY co.order_ID
+HAVING SUM(
+		(1 + ISNULL(t.tax_percentage / 100, 0)) 
+		* (1 - ISNULL(d.discount_percentage / 100, 0)) 
+		* c.price * co.computer_amount) 
+>= ALL (
+    SELECT SUM(
+		(1 + ISNULL(tax.tax_percentage / 100, 0)) 
+		* (1 - ISNULL(discount.discount_percentage / 100, 0)) 
+		* computer.price * co.computer_amount
+    ) AS total_cost
+    FROM ComputerOrder co
+    JOIN Computer computer ON co.computer_ID = computer.computer_ID
+    LEFT JOIN ComputerTax ct ON co.computer_ID = ct.computer_ID
+    LEFT JOIN Tax tax ON ct.tax_ID = tax.tax_ID
+    LEFT JOIN ComputerDiscount cd ON co.computer_ID = cd.computer_ID
+    LEFT JOIN Discount discount ON cd.discount_ID = discount.discount_ID
+    GROUP BY co.order_ID
+);
 
 
-
--- Querry 9 //TODO
-SELECT c.customer_ID, c.first_name, c.family_name
-FROM Customer c
-WHERE c.customer_ID != ALL (
-    SELECT o.customer_ID
-    FROM [Order] o
-    WHERE o.customer_ID = c.customer_ID
-    AND o.payment_method = 'Cash'
+--Querry -> changed
+SELECT customer_id, first_name, family_name
+FROM Customer
+WHERE customer_id IN (
+    SELECT customer_id
+    FROM [Order]
+    WHERE payment_method = 'Cash'
 )
 INTERSECT
-SELECT c.customer_ID, c.first_name, c.family_name
-FROM Customer c
-WHERE YEAR(GETDATE()) - YEAR(c.birth_date) > 40;
+SELECT customer_id, first_name, family_name
+FROM Customer
+WHERE customer_id IN (
+    SELECT customer_id
+    FROM [Order]
+    WHERE payment_method = 'Credit Card'
+);
 
 
 
 
--- Querry 10
+-- Querry
 SELECT c.customer_ID, c.first_name, c.family_name
 FROM Customer c
 WHERE c.customer_ID IN (
