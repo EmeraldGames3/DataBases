@@ -3,9 +3,7 @@ USE Lab3;
 CREATE OR ALTER PROCEDURE SetUp
 AS
 BEGIN
-	CREATE TABLE CurrentVersion (
-		CurrentVersion INT PRIMARY KEY
-	);
+	CREATE TABLE CurrentVersion (CurrentVersion INT PRIMARY KEY);
 
 	INSERT INTO CurrentVersion (CurrentVersion) VALUES (0);
 
@@ -20,13 +18,13 @@ BEGIN
         oldColumnType VARCHAR(100),
         referencedTable VARCHAR(100),
         referencedColumn VARCHAR(100)
-	)
+	);
 END;
 
 CREATE OR ALTER PROCEDURE RollbackSetUp
 AS
 BEGIN
-	DROP TABLE CurrentVersion
+	DROP TABLE CurrentVersion;
 	DROP TABLE VersionHistory;
 END;
 
@@ -34,7 +32,8 @@ END;
 
 CREATE OR ALTER PROCEDURE CreateTable(
     @tableName VARCHAR(100),
-    @columnsDefinition VARCHAR(MAX)
+    @columnsDefinition VARCHAR(MAX),
+	@addToVersionHistory BIT = 1
 )
 AS
 BEGIN
@@ -43,15 +42,19 @@ BEGIN
 	PRINT @sql;
     EXEC (@sql);
 
-	INSERT INTO VersionHistory (ProcedureName, tableName, columnsDefinition)
-	VALUES ('CreateTable', @tableName, @columnsDefinition);
 
-	IF EXISTS (SELECT * FROM currentVersion)
-		UPDATE currentVersion
-		SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
-	ELSE		
-		INSERT INTO currentVersion
-		VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+	IF @addToVersionHistory = 1
+		BEGIN
+			INSERT INTO VersionHistory (ProcedureName, tableName, columnsDefinition)
+				VALUES ('CreateTable', @tableName, @columnsDefinition);
+
+			IF EXISTS (SELECT * FROM currentVersion)
+				UPDATE currentVersion
+				SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
+			ELSE		
+				INSERT INTO currentVersion
+				VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+		END;
 END
 GO
 
@@ -76,7 +79,8 @@ CREATE OR ALTER PROCEDURE AddForeignKeyConstraint(
     @tableName VARCHAR(100),
     @columnName VARCHAR(100),
     @referencedTable VARCHAR(100),
-    @referencedColumn VARCHAR(100)
+    @referencedColumn VARCHAR(100),
+	@addToVersionHistory BIT = 1
 )
 AS
 BEGIN
@@ -86,15 +90,19 @@ BEGIN
 	PRINT @sql;
 	EXEC (@sql);
 
-	INSERT INTO VersionHistory (ProcedureName, tableName, columnName, referencedTable, referencedColumn)
-	VALUES ('AddForeignKeyConstraint', @tableName, @columnName, @referencedTable, @referencedColumn);
+	
+	IF @addToVersionHistory = 1
+		BEGIN
+			INSERT INTO VersionHistory (ProcedureName, tableName, columnName, referencedTable, referencedColumn)
+				VALUES ('AddForeignKeyConstraint', @tableName, @columnName, @referencedTable, @referencedColumn);
 
-	IF EXISTS (SELECT * FROM currentVersion)
-		UPDATE currentVersion
-		SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
-	ELSE		
-		INSERT INTO currentVersion
-		VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+			IF EXISTS (SELECT * FROM currentVersion)
+				UPDATE currentVersion
+				SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
+			ELSE		
+				INSERT INTO currentVersion
+				VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+		END;
 END
 GO
 
@@ -116,25 +124,29 @@ GO
 CREATE OR ALTER PROCEDURE AddColumnToTable(
 	@tableName VARCHAR(100),
 	@columnName VARCHAR(100),
-	@columnType VARCHAR(100)
+	@columnType VARCHAR(100),
+	@addToVersionHistory BIT = 1
 )
 AS
-    BEGIN
+   BEGIN
        DECLARE @sql VARCHAR(MAX);
        SET @sql = 'ALTER TABLE ' + @tableName +  ' ADD ' + @columnName + ' ' + @columnType;
 	   PRINT @sql;
        EXEC (@sql);
 
-	   INSERT INTO VersionHistory (ProcedureName, tableName, columnName, columnType)
-	   VALUES ('AddColumnToTable', @tableName, @columnName, @columnType);
+	IF @addToVersionHistory = 1
+	BEGIN
+		INSERT INTO VersionHistory (ProcedureName, tableName, columnName, columnType)
+			VALUES ('AddColumnToTable', @tableName, @columnName, @columnType);
 	
-		IF EXISTS (SELECT * FROM currentVersion)
-			UPDATE currentVersion
-			SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
-		ELSE		
-			INSERT INTO currentVersion
-			VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
-    END
+			IF EXISTS (SELECT * FROM currentVersion)
+				UPDATE currentVersion
+				SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
+			ELSE		
+				INSERT INTO currentVersion
+				VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+	END;
+END
 GO
 
 CREATE OR ALTER PROCEDURE RollbackAddColumnToTable(
@@ -154,7 +166,8 @@ GO
 CREATE OR ALTER PROCEDURE AddDefaultConstraint(
 	@tableName VARCHAR(100),
 	@columnName VARCHAR(100),
-	@defaultConstraint VARCHAR(100)
+	@defaultConstraint VARCHAR(100),
+	@addToVersionHistory BIT = 1
 )
 AS
 	BEGIN
@@ -164,16 +177,19 @@ AS
 		PRINT @sql
 		EXEC (@sql);
 
-		INSERT INTO VersionHistory (ProcedureName, tableName, columnName, defaultConstraint)
-		VALUES ('AddDefaultConstraint', @tableName, @columnName, @defaultConstraint);
+		IF @addToVersionHistory = 1
+			BEGIN
+				INSERT INTO VersionHistory (ProcedureName, tableName, columnName, defaultConstraint)
+				VALUES ('AddDefaultConstraint', @tableName, @columnName, @defaultConstraint);
 	
-		IF EXISTS (SELECT * FROM currentVersion)
-			UPDATE currentVersion
-			SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
-		ELSE		
-			INSERT INTO currentVersion
-			VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
-    END
+				IF EXISTS (SELECT * FROM currentVersion)
+					UPDATE currentVersion
+					SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
+				ELSE		
+					INSERT INTO currentVersion
+					VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+			END;
+    END;
 GO
 
 CREATE OR ALTER PROCEDURE RollbackAddDefaultConstraint(
@@ -194,7 +210,8 @@ GO
 CREATE OR ALTER PROCEDURE ChangeColumnType (
 	@tableName VARCHAR(100),
 	@columnName VARCHAR(100),
-	@columnType VARCHAR(100)
+	@columnType VARCHAR(100),
+	@addToVersionHistory BIT = 1
 )
 AS
 	BEGIN
@@ -212,15 +229,18 @@ AS
 		PRINT @sql;
 		EXEC (@sql);
 
-		INSERT INTO VersionHistory (ProcedureName, tableName, columnName, columnType, oldColumnType)
-			VALUES ('ChangeColumnType', @tableName, @columnName, @columnType, @oldColumnType);
+		IF @addToVersionHistory = 1
+			BEGIN
+				INSERT INTO VersionHistory (ProcedureName, tableName, columnName, columnType, oldColumnType)
+					VALUES ('ChangeColumnType', @tableName, @columnName, @columnType, @oldColumnType);
 
-		IF EXISTS (SELECT * FROM currentVersion)
-			UPDATE currentVersion
-			SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
-		ELSE		
-			INSERT INTO currentVersion
-			VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+				IF EXISTS (SELECT * FROM currentVersion)
+					UPDATE currentVersion
+					SET CurrentVersion = (SELECT MAX(VersionID) FROM VersionHistory)
+				ELSE		
+					INSERT INTO currentVersion
+					VALUES ((SELECT MAX(VersionID) FROM VersionHistory))
+			END;
 	END;
 GO
 
@@ -301,33 +321,36 @@ BEGIN
     BEGIN
         WHILE @currentVersion < @targetVersion
         BEGIN
-            SELECT @procedureName = ProcedureName FROM VersionHistory WHERE VersionID = @currentVersion;
-			SELECT @tableName = tableName FROM VersionHistory WHERE VersionID = @currentVersion;
-			SELECT @columnsDefinition = columnsDefinition FROM VersionHistory WHERE VersionID = @currentVersion
-			SELECT @columnName = columnName FROM VersionHistory WHERE VersionID = @currentVersion;
-			SELECT @oldColumnType = oldColumnType FROM VersionHistory WHERE VersionID = @currentVersion;
+            SELECT @procedureName = ProcedureName FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @tableName = tableName FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @columnsDefinition = columnsDefinition FROM VersionHistory WHERE VersionID = (@currentVersion + 1)
+			SELECT @columnName = columnName FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @columnType = columnType FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @referencedTable = referencedTable FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @referencedColumn = referencedColumn FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
+			SELECT @defaultConstraint = defaultConstraint FROM VersionHistory WHERE VersionID = (@currentVersion + 1);
 
 			IF @procedureName = 'CreateTable'
 				BEGIN
-					EXEC @procedureName @tableName, @columnsDefinition;
+					EXEC @procedureName @tableName, @columnsDefinition, 0;
 				END
 			ELSE IF @procedureName = 'AddForeignKeyConstraint'
 				BEGIN
-					EXEC @procedureName @tableName, ;
+					EXEC @procedureName @tableName, @columnName, @referencedTable, @referencedColumn, 0;
 				END
 			ELSE IF @procedureName = 'AddColumnToTable'
 				BEGIN
-					EXEC @procedureName @tableName;
+					EXEC @procedureName @tableName, @columnName, @columnType, 0;
 				END
 			ELSE IF @procedureName = 'AddDefaultConstraint'
 				BEGIN
-					EXEC @procedureName @tableName;
+					EXEC @procedureName @tableName, @columnName, @defaultConstraint, 0;
 				END
 			ELSE IF @procedureName = 'ChangeColumnType'
 				BEGIN
-					EXEC @procedureName @tableName;
+					PRINT @columnType;
+					EXEC @procedureName @tableName, @columnName, @columnType, 0;
 				END
-
 
             SET @currentVersion = @currentVersion + 1;
 
@@ -346,12 +369,10 @@ EXEC CreateTable 'Orders', 'OrderID INT PRIMARY KEY, OrderDate DATETIME, Custome
 EXEC AddForeignKeyConstraint 'Orders', 'CustomerID', 'Customers', 'CustomerID';
 EXEC AddDefaultConstraint 'Customers', 'CustomerName', '''Nume''';
 
+EXEC GoToVersion 3;
 EXEC GoToVersion 0;
+EXEC GoToVersion 4;
+EXEC GoToVersion 6;
 
-EXEC RollbackAddDefaultConstraint 'Customers', 'CustomerName';
-EXEC RollbackAddForeignKeyConstraint 'Orders', 'CustomerID';
-EXEC RollBackChangeColumnType 'Customers', 'Age', 'INT';
-EXEC RollbackAddColumnToTable 'Customers', 'Age';
-EXEC RollbackCreateTable 'Customers';
-EXEC RollbackCreateTable 'Orders';
+EXEC GoToVersion 0;
 EXEC RollbackSetUp;

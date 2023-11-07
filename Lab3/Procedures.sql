@@ -178,7 +178,15 @@ GO
 EXEC CreateTable 'Customers', 'CustomerID INT PRIMARY KEY, CustomerName NVARCHAR(255)';
 EXEC AddColumnToTable 'Customers', 'Age', 'INT';
 EXEC ChangeColumnType 'Customers', 'Age', 'VARCHAR(50)';
+EXEC AddDefaultConstraint 'Customers', 'Age', '18';
+EXEC AddDefaultConstraint 'Customers', 'CustomerName', '''Nume''';
+EXEC CreateTable 'Orders', 'OrderID INT PRIMARY KEY, OrderDate DATETIME, CustomerID INT';
+EXEC AddForeignKeyConstraint 'Orders', 'CustomerID', 'Customers', 'CustomerID';
 
+EXEC RollbackAddForeignKeyConstraint 'Orders', 'CustomerID';
+EXEC RollbackCreateTable 'Orders';
+EXEC RollbackAddDefaultConstraint 'Customers', 'Age';
+EXEC RollbackAddDefaultConstraint 'Customers', 'CustomerName';
 EXEC RollBackChangeColumnType 'Customers', 'Age', 'INT';
 EXEC RollbackAddColumnToTable 'Customers', 'Age';
 EXEC RollbackCreateTable 'Customers';
