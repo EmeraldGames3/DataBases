@@ -313,7 +313,7 @@ BEGIN
 				END
 			ELSE IF @procedureName = 'AddForeignKeyConstraint'
 				BEGIN
-					EXEC @procedureName @tableName;
+					EXEC @procedureName @tableName, ;
 				END
 			ELSE IF @procedureName = 'AddColumnToTable'
 				BEGIN
