@@ -3,9 +3,9 @@ USE Lab3;
 CREATE OR ALTER PROCEDURE SetUp
 AS
 BEGIN
-	CREATE TABLE CurrentVersion (CurrentVersion INT PRIMARY KEY);
+	CREATE TABLE currentVersion (CurrentVersion INT PRIMARY KEY);
 
-	INSERT INTO CurrentVersion (CurrentVersion) VALUES (0);
+	INSERT INTO currentVersion (CurrentVersion) VALUES (0);
 
 	CREATE TABLE VersionHistory (
 		VersionID INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
@@ -24,10 +24,17 @@ END;
 CREATE OR ALTER PROCEDURE RollbackSetUp
 AS
 BEGIN
-	DROP TABLE CurrentVersion;
+	DROP TABLE currentVersion;
 	DROP TABLE VersionHistory;
 END;
 
+
+CREATE OR ALTER PROCEDURE ShowVersionHistory
+AS
+BEGIN
+	SELECT * FROM VersionHistory;
+	SELECT * FROM currentVersion;
+END;
 
 
 CREATE OR ALTER PROCEDURE CreateTable(
@@ -275,7 +282,7 @@ BEGIN
 	DECLARE @referencedTable VARCHAR(100);
 	DECLARE @referencedColumn VARCHAR(100);
 
-    SELECT @currentVersion = CurrentVersion FROM CurrentVersion;
+    SELECT @currentVersion = CurrentVersion FROM currentVersion;
 
     IF @targetVersion >= 0 AND @targetVersion < @currentVersion
     BEGIN
@@ -312,7 +319,7 @@ BEGIN
 
             SET @currentVersion = @currentVersion - 1;
 
-            UPDATE CurrentVersion
+            UPDATE currentVersion
             SET CurrentVersion = @currentVersion;
         END;
     END;
@@ -354,25 +361,29 @@ BEGIN
 
             SET @currentVersion = @currentVersion + 1;
 
-            UPDATE CurrentVersion
+            UPDATE currentVersion
             SET CurrentVersion = @currentVersion;
         END;
     END;
 END;
 
 
-EXEC SetUp
+EXEC SetUp;
 EXEC CreateTable 'Customers', 'CustomerID INT PRIMARY KEY, CustomerName NVARCHAR(255)';
 EXEC AddColumnToTable 'Customers', 'Age', 'INT';
-EXEC ChangeColumnType 'Customers', 'Age', 'VARCHAR(50)';
+EXEC ChangeColumnType 'Customers', 'CustomerName', 'CHAR(20)';
+EXEC AddDefaultConstraint 'Customers', 'CustomerName', '''Nume''';
+EXEC AddDefaultConstraint 'Customers', 'Age', '18';
 EXEC CreateTable 'Orders', 'OrderID INT PRIMARY KEY, OrderDate DATETIME, CustomerID INT';
 EXEC AddForeignKeyConstraint 'Orders', 'CustomerID', 'Customers', 'CustomerID';
-EXEC AddDefaultConstraint 'Customers', 'CustomerName', '''Nume''';
 
+EXEC ShowVersionHistory;
+
+EXEC GoToVersion 2;
 EXEC GoToVersion 3;
 EXEC GoToVersion 0;
-EXEC GoToVersion 4;
-EXEC GoToVersion 6;
+EXEC GoToVersion 5;
+EXEC GoToVersion 7;
 
 EXEC GoToVersion 0;
 EXEC RollbackSetUp;
