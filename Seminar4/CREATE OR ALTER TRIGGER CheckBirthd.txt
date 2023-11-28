@@ -1,0 +1,23 @@
+CREATE OR ALTER TRIGGER CheckBirthdate
+ON [dbo].Studenten
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @date DATE;
+    DECLARE @error_message NVARCHAR(100) = 'Invalid date';
+
+    SELECT @date = geburtstag FROM inserted;
+
+    IF (@date < '1990-01-01' OR @date > '2002-01-01')
+    BEGIN
+        RAISEERROR(16, 'Invalid Date', 1);
+    END
+    ELSE
+    BEGIN
+        INSERT INTO [dbo].Studenten (/*column list*/)
+        SELECT /*column list*/
+        FROM inserted;
+    END
+END;

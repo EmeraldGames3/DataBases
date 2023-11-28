@@ -1,4 +1,7 @@
 --EX 3
+USE COMPUTER_STORE;
+GO
+
 CREATE TABLE Logger (
     LogID INT PRIMARY KEY IDENTITY(1,1),
     LogDate DATETIME NOT NULL,
@@ -24,13 +27,15 @@ BEGIN
     ELSE
         SET @OperationType = 'D';
     INSERT INTO Logger (LogDate, LogType, TableName, AffectedRows)
-    VALUES (GETDATE(), @OperationType, 'Employees', (SELECT COUNT(DISTINCT customer_ID) FROM (
+    VALUES (GETDATE(), @OperationType, 'Customer', (SELECT COUNT(DISTINCT customer_ID) FROM (
             SELECT customer_ID FROM inserted
             UNION
             SELECT customer_ID FROM deleted
         ) AS CombinedTable));
 END;
 GO
+
+SELECT * FROM Customer;
 
 INSERT INTO Customer (customer_ID, first_name, family_name, birth_date, email)
 VALUES (111, 'John', 'Smith', '1985-05-15', 'john.smith@example.com')
@@ -47,3 +52,4 @@ WHERE customer_ID = 111;
 
 SELECT * FROM Logger;
 DROP TABLE Logger;
+DROP TRIGGER CustomerOperationTrigger;

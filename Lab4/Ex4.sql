@@ -1,11 +1,15 @@
 --EX4
+USE COMPUTER_STORE;
+GO
+
 CREATE TABLE UpdateLog (
     LogID INT PRIMARY KEY IDENTITY(1,1),
-    EmployeeID INT,
+    computer_ID INT,
     OldComputerCost DECIMAL(10, 2),
     NewComputerCost DECIMAL(10, 2),
     UpdateDate DATETIME
 );
+GO
 
 CREATE OR ALTER PROCEDURE UpdateComputerCost
     @ComputerID INT,
@@ -22,10 +26,12 @@ BEGIN
     SET price = @NewComputerCost
     WHERE computer_ID = @ComputerID;
 
-    INSERT INTO UpdateLog (EmployeeID, OldComputerCost, NewComputerCost, UpdateDate)
+    INSERT INTO UpdateLog (computer_ID, OldComputerCost, NewComputerCost, UpdateDate)
     VALUES (@ComputerID, @OldComputerCost, @NewComputerCost, GETDATE());
 END;
+GO
 
+SELECT computer_ID, model_name, price FROM Computer;
 
 DECLARE ComputerCursor CURSOR FOR
 SELECT computer_ID, price
@@ -49,4 +55,5 @@ CLOSE ComputerCursor;
 DEALLOCATE ComputerCursor;
 
 SELECT * FROM UpdateLog;
+SELECT computer_ID, model_name, price FROM Computer;
 DROP TABLE UpdateLog;

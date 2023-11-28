@@ -1,4 +1,7 @@
 --EX1:
+USE COMPUTER_STORE;
+GO
+
 CREATE OR ALTER FUNCTION CheckOver18 (@BirthDate date) RETURNS BIT AS
 	BEGIN
 		DECLARE @IsOver18 BIT
@@ -46,11 +49,10 @@ BEGIN
     ELSE
     BEGIN
 		PRINT 'Validation failed. Data not inserted.'
-
 		IF @IsOver18 = 0
-			PRINT 'Customer must be over 18';
+			RAISERROR ('Customer must be over 18', 16, 1);
 		ELSE
-			PRINT 'Invalid email';
+			RAISERROR ('Invalid email', 16, 1);
     END
 END
 GO
@@ -81,7 +83,9 @@ CREATE OR ALTER VIEW OrderFinalPrice AS
     LEFT JOIN Discount d ON cd.discount_ID = d.discount_ID
     GROUP BY o.order_ID;
 GO
---SELECT * FROM OrderFinalPrice;
+
+
+SELECT * FROM OrderFinalPrice;
 
 
 CREATE OR ALTER FUNCTION GetRepeatCustomers ( @repeatTimes INT ) RETURNS TABLE
@@ -97,17 +101,17 @@ AS RETURN (
     HAVING COUNT(o.order_ID) >= @repeatTimes
 );
 GO
---SELECT * FROM GetRepeatCustomers(2);
+
+
+SELECT * FROM GetRepeatCustomers(2);
 
 
 SELECT
     rc.customer_id,
     rc.first_name,
     rc.family_name,
-    ofp.final_price
+    ofp.final_price AS total_spending
 FROM
     dbo.GetRepeatCustomers(2) rc
 JOIN
     dbo.OrderFinalPrice ofp ON rc.customer_id = ofp.order_ID
-GROUP BY
-    ofp.final_price, customer_id, rc.first_name, rc.family_name;
