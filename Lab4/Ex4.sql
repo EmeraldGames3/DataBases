@@ -40,7 +40,6 @@ FROM Computer;
 DECLARE @ComputerID INT, @OldPrice DECIMAL(10, 2), @NewPrice DECIMAL(10, 2);
 
 OPEN ComputerCursor;
-
 FETCH NEXT FROM ComputerCursor INTO @ComputerID, @OldPrice;
 
 WHILE @@FETCH_STATUS = 0

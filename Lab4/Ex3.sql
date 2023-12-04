@@ -36,6 +36,7 @@ END;
 GO
 
 SELECT * FROM Customer;
+SELECT COUNT(*) FROM Customer;
 
 INSERT INTO Customer (customer_ID, first_name, family_name, birth_date, email)
 VALUES (111, 'John', 'Smith', '1985-05-15', 'john.smith@example.com')
