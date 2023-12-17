@@ -8,6 +8,7 @@ BEGIN
     CREATE TABLE Ta (
         idA INT PRIMARY KEY,
         a2 INT UNIQUE,
+		a3 INT,
     );
 
     CREATE TABLE Tb (
@@ -43,7 +44,7 @@ BEGIN
     DECLARE @i INT = 1;
     WHILE @i <= 10000
     BEGIN
-		INSERT INTO Ta (idA, a2) VALUES (@i, @i * 2);
+		INSERT INTO Ta (idA, a2, a3) VALUES (@i, @i * 2, @i * 3);
         SET @i = @i + 1;
     END;
 
