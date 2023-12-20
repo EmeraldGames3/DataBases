@@ -1,11 +1,12 @@
 USE Wiederholung;
 GO
 
-CREATE OR ALTER PROCEDURE AddRoute
+CREATE OR ALTER PROCEDURE AddRoute(
     @route_id INT,
     @bahnhof_id INT,
     @ankunft_zeit TIME,
     @abfahrt_zeit TIME
+)
 AS
 BEGIN
     -- Check if the station already exists in the route
